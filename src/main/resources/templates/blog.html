@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Блог - Лента постов</title>
+    <style>
+        body {
+          font-family: Arial, sans-serif;
+          background-color: #f0f2f5;
+          margin: 20px;
+        }
+
+        h1 {
+          font-size: 2em;
+          margin-bottom: 20px;
+        }
+
+        .posts-container {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 20px;
+        }
+
+        .post {
+          background-color: #fff;
+          border-radius: 8px;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+          width: calc(33% - 20px);
+          display: flex;
+          flex-direction: column;
+        }
+
+        .post img {
+          width: 100%;
+          border-top-left-radius: 8px;
+          border-top-right-radius: 8px;
+        }
+
+        .post-content {
+          padding: 15px;
+        }
+
+        .post-title {
+          font-weight: bold;
+          margin-bottom: 10px;
+        }
+
+        .post-text {
+          font-size: 0.9em;
+          color: #555;
+        }
+
+        @media(max-width: 1024px) {
+          .post {
+            width: calc(50% - 20px);
+          }
+        }
+
+        @media(max-width: 600px) {
+          .post {
+            width: 100%;
+          }
+        }
+    </style>
+</head>
+<body>
+
+<h1>The Blog</h1>
+<!-- Форма поиска -->
+<form method="GET" action="/search">
+    <label for="articleId">Поиск статьи по ID:</label>
+    <input type="text" id="articleId" name="id" placeholder="Введите ID статьи" required />
+    <button type="submit">Найти</button>
+</form>
+
+<!-- Контейнер для постов -->
+<div class="posts-container" id="postsContainer">
+    <!-- Посты будут динамически добавляться сюда -->
+</div>
+
+<script>
+    const getPosts = async () => {
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5000);
+
+        const response = await fetch('http://localhost:8080/blog-1.0-SNAPSHOT/post/posts', {
+          signal: controller.signal
+        });
+
+        clearTimeout(timeoutId);
+
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        return await response.json();
+      } catch (error) {
+        console.error('Ошибка при получении постов:', error);
+        return [];
+      }
+    };
+
+    // Функция для отображения постов
+    function displayPosts(posts) {
+      const container = document.getElementById('postsContainer');
+      container.innerHTML = '';
+
+      const postsToShow = posts.slice(0, 3);
+
+      postsToShow.forEach(post => {
+        const postDiv = document.createElement('div');
+        postDiv.className = 'post';
+
+        const link = document.createElement('a');
+        link.href = `/post/${post.id}`;
+        link.textContent = post.title;
+        link.className = 'post-link';
+
+        const contentDiv = document.createElement('div');
+        contentDiv.className = 'post-content';
+        contentDiv.textContent = post.content;
+
+        postDiv.appendChild(link);
+        postDiv.appendChild(contentDiv);
+        container.appendChild(postDiv);
+      });
+    }
+
+    // Загрузка и отображение постов при загрузке страницы
+    (async () => {
+      const posts = await getPosts();
+      displayPosts(posts);
+    })();
+</script>
+</body>
+</html>
