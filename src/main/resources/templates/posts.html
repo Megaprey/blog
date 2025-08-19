@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="ru" xmlns:th="http://www.w3.org/1999/xhtml">
+<html lang="ru" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Страница поста</title>
+    <title th:text="${post != null} ? ${post.name} : 'Новый пост'">Страница поста</title>
     <style>
         body {
           font-family: Arial, sans-serif;
@@ -12,10 +12,6 @@
         h1 {
             text-align: center;
         }
-        /* Стиль для формы добавления поста */
-
-
-        /* Кнопки */
         .buttons {
           margin-top: 15px;
         }
@@ -31,7 +27,9 @@
         button:hover {
           background-color: #0056b3;
         }
-        /* Комментарии */
+        .edit-buttons {
+            display: none;
+        }
         .comments {
           margin-top: 30px;
           max-width: 800px;
@@ -43,7 +41,6 @@
         .comment-text {
           margin-bottom: 8px;
         }
-        /* Лайки */
         .likes {
           margin-top: 10px;
         }
@@ -51,122 +48,149 @@
             display: block;
             margin-top: 10px;
         }
-        input[type="text"], input[type="number"], input[type="checkbox"] {
-            width: 50%;
-            padding: 5px;
-            margin-top: 5px;
-        }
-        input[id="postName"] {
-            width: 50%;
-            padding: 5px;
-            margin-top: 5px;
+        input[type="text"], textarea {
+            width: 80%;
+            padding: 8px;
+            margin-bottom: 10px;
+            box-sizing: border-box;
         }
         .postName-input {
             font-family: 'Courier New', monospace;
             font-size: 36px;
             font-weight: bold;
         }
-        textarea {
-          width: 80%;
-          padding: 8px;
-          margin-bottom: 10px;
-          box-sizing: border-box;
-        }
         .hashtag {
-            color: #1da1f2; /* Цвет как в Twitter */
+            color: #1da1f2;
             text-decoration: none;
             margin-right: 5px;
         }
         .hashtag:hover {
             text-decoration: underline;
         }
+        #postImage {
+            max-width: 300px;
+            margin-top: 20px;
+            display: block;
+        }
     </style>
 </head>
 <body>
 
-<!-- Скрываемая форма для добавления нового пользователя -->
-<div class="form-container" style="display: true;" id="userForm">
-    <form th:action="@{/post/add}" method="POST" enctype="multipart/form-data">
-        <input type="text" id="postName" name="name" placeholder="Название поста" class="postName-input" required>
-        <input type="text" id="tagsInput" name="tags" placeholder="Введите теги через # (например, #кошки #собаки)">
-        <img id="picture" src="" alt="Предварительный просмотр"
-             style="display:none; max-width: 300px; margin-top: 20px;" />
-        <textarea id="postContent" name="text" rows="4" placeholder="Текст поста" required></textarea>
-        <label>Добавить картику</label>
+<div class="form-container" id="userForm">
+    <form th:action="${post != null} ? @{'/post/update/' + ${post.id}} : @{/post/add}" 
+          method="POST" 
+          enctype="multipart/form-data">
+        
+        <!-- Поля поста -->
+        <input type="text" id="postName" name="name" 
+               th:value="${post != null} ? ${post.name} : ''" 
+               placeholder="Название поста" 
+               class="postName-input" 
+               required
+               th:readonly="${post == null} ? false : true">
+        
+        <input type="text" id="tagsInput" name="tags" 
+               th:value="${post != null} ? ${post.tags} : ''" 
+               placeholder="Введите теги через # (например, #кошки #собаки)"
+               th:readonly="${post == null} ? false : true">
+        
+        <img id="postImage" th:if="${post != null && post.image != null}" 
+             th:src="'data:image/jpeg;base64,' + ${post.image}" 
+             alt="Изображение поста">
+        
+        <textarea id="postContent" name="text" rows="4" 
+                  placeholder="Текст поста" 
+                  th:text="${post != null} ? ${post.text} : ''"
+                  required
+                  th:readonly="${post == null} ? false : true"></textarea>
+        
+        <label th:if="${post == null}">Добавить картинку</label>
         <input type="file" id="image" name="image" accept="image/jpeg"
+               th:disabled="${post != null}"
                onchange="showPicture(event)"/>
+        
         <div class="likes">
             <button type="button" id="likeBtn">👍</button>
-            <span id="likeCount">0</span>
-            <!-- Добавьте скрытое поле для передачи likeCount -->
-            <input type="hidden" id="likeCountInput" name="likeCount" value="0">
+            <span id="likeCount" th:text="${post != null} ? ${post.likeCount} : '0'">0</span>
+            <input type="hidden" id="likeCountInput" name="likeCount" 
+                   th:value="${post != null} ? ${post.likeCount} : '0'">
         </div>
-        <button type="submit">Добавить этот пост</button>
-    </form>
-    <button id="addCommentBtn">Добавить комментарий</button><br>
-</div>
-<div class="post-form" id="commentFormContainer" style="display:none; margin-top:20px;">
-    <h3>Добавить комментарий</h3>
-    <form id="commentForm" th:action="@{/post/comment/add}" method="POST">
-        <textarea id="commentText" rows="3" placeholder="Ваш комментарий" required></textarea>
-        <button type="submit">Отправить комментарий</button>
-        <button type="button" id="cancelCommentBtn">Отмена</button>
+        
+        <!-- Кнопки для нового поста -->
+        <div class="buttons" th:if="${post == null}">
+            <button type="submit">Добавить этот пост</button>
+        </div>
+        
+        <!-- Кнопки для существующего поста -->
+        <div class="buttons" th:if="${post != null}">
+            <button type="button" id="editBtn">Редактировать</button>
+            <div class="edit-buttons" id="editButtons">
+                <button type="submit" id="updateBtn">Обновить</button>
+                <button type="button" id="cancelEditBtn">Отмена</button>
+            </div>
+        </div>
     </form>
 </div>
 
 <script>
-    addCommentBtn.addEventListener('click', () => {
-        document.getElementById('commentFormContainer').style.display = 'block';
-    });
+    // Функция для предпросмотра изображения
     function showPicture(event) {
-        const file = event.target.files[0]; // получаем выбранный файл
-        const reader = new FileReader();
-
-        reader.onload = function(e) {
-          // устанавливаем источник изображения
-        document.getElementById('picture').src = e.target.result;
-        document.getElementById('picture').style.display = 'block';
+        const file = event.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = document.getElementById('postImage');
+                if (!img) {
+                    const newImg = document.createElement('img');
+                    newImg.id = 'postImage';
+                    newImg.style.maxWidth = '300px';
+                    newImg.style.marginTop = '20px';
+                    newImg.style.display = 'block';
+                    document.querySelector('form').insertBefore(newImg, document.querySelector('textarea'));
+                }
+                document.getElementById('postImage').src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
     }
 
-    if (file) {
-      reader.readAsDataURL(file); // читаем файл как Data URL
-    }
-  }
-    document.getElementById("likeBtn").addEventListener("click", function() {
-        const likeCountSpan = document.getElementById("likeCount");
-        const likeCountInput = document.getElementById("likeCountInput");
+    // Обработчик кнопки редактирования
+    document.getElementById('editBtn')?.addEventListener('click', function() {
+        document.getElementById('editBtn').style.display = 'none';
+        document.getElementById('editButtons').style.display = 'block';
+        
+        // Разблокируем поля для редактирования
+        document.getElementById('postName').readOnly = false;
+        document.getElementById('tagsInput').readOnly = false;
+        document.getElementById('postContent').readOnly = false;
+        
+        // Активируем загрузку изображения
+        document.getElementById('image').disabled = false;
+    });
+
+    // Обработчик кнопки отмены редактирования
+    document.getElementById('cancelEditBtn')?.addEventListener('click', function() {
+        document.getElementById('editBtn').style.display = 'inline-block';
+        document.getElementById('editButtons').style.display = 'none';
+        
+        // Блокируем поля обратно
+        document.getElementById('postName').readOnly = true;
+        document.getElementById('tagsInput').readOnly = true;
+        document.getElementById('postContent').readOnly = true;
+        document.getElementById('image').disabled = true;
+        
+        // Можно добавить сброс значений к исходным
+    });
+
+    // Обработчик лайков
+    document.getElementById('likeBtn')?.addEventListener('click', function() {
+        const likeCountSpan = document.getElementById('likeCount');
+        const likeCountInput = document.getElementById('likeCountInput');
         let currentLikes = parseInt(likeCountSpan.textContent);
-
         currentLikes += 1;
         likeCountSpan.textContent = currentLikes;
         likeCountInput.value = currentLikes;
     });
-
-    document.getElementById('tagsInput').addEventListener('input', function(e) {
-        const inputText = e.target.value;
-        const tagsContainer = document.getElementById('tagsContainer'); // Контейнер для тегов
-
-        // Очищаем контейнер перед обновлением
-        tagsContainer.innerHTML = '';
-
-        // Разделяем текст по пробелам и находим теги (начинающиеся с #)
-        const words = inputText.split(' ');
-        words.forEach(word => {
-            if (word.startsWith('#')) {
-                const tag = word.substring(1); // Убираем #
-                const tagLink = document.createElement('a');
-                tagLink.href = `/tags/${tag}`; // Ссылка на страницу тега
-                tagLink.textContent = word;
-                tagLink.style.marginRight = '5px';
-                tagLink.style.color = 'blue';
-                tagsContainer.appendChild(tagLink);
-            } else {
-                // Если не тег, добавляем как обычный текст
-                tagsContainer.appendChild(document.createTextNode(word + ' '));
-            }
-        });
-    });
-
 </script>
 </body>
 </html>

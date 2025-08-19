@@ -10,6 +10,7 @@ import java.sql.SQLException;
 public class Mapper {
     public static Post postDtoMapToPost(PostDto postDto) throws IOException, SQLException {
         return Post.builder()
+                .id(postDto.getId())
                 .name(postDto.getName())
                 .text(postDto.getText())
                 .image(Utils.multipartFileToMassByte(postDto.getImage()))

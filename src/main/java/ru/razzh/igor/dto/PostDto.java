@@ -3,11 +3,21 @@ package ru.razzh.igor.dto;
 import org.springframework.web.multipart.MultipartFile;
 
 public class PostDto {
+    private Long id;
+
     private String name;
     private String text;
     private String tags;
     private MultipartFile image;
     private int likeCount;
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public Long getId() {
+        return id;
+    }
 
     public void setTags(String tags) {
         this.tags = tags;

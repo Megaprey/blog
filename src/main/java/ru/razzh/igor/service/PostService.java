@@ -6,7 +6,6 @@ import ru.razzh.igor.dto.PostDto;
 import ru.razzh.igor.entity.Post;
 import ru.razzh.igor.map.Mapper;
 import ru.razzh.igor.repository.PostRepository;
-import ru.razzh.igor.util.Utils;
 
 import java.io.IOException;
 import java.sql.SQLException;
@@ -32,12 +31,19 @@ public class PostService {
         }
     }
 
-    public List<Post> findAll() {
-        return postRepository.findAll();
+    public List<Post> findFreeLastPosts() {
+        return postRepository.findFreeLastPosts();
     }
 
     public Optional<Post> findByName(String name) {
         return postRepository.findByName(name);
     }
 
+    public Optional<Post> findById(Long id) {
+        return postRepository.findById(id);
+    }
+
+    public void updatePost(PostDto postDto) throws SQLException, IOException {
+        postRepository.updatePost(Mapper.postDtoMapToPost(postDto));
+    }
 }

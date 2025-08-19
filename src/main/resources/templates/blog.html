@@ -16,6 +16,30 @@
           margin-bottom: 20px;
         }
 
+        .header-buttons {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .add-post-btn {
+            padding: 10px 20px;
+            background-color: #28a745;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+
+        .add-post-btn:hover {
+            background-color: #218838;
+        }
+
+        .search-form {
+            margin-bottom: 20px;
+        }
+
         .posts-container {
           display: flex;
           flex-wrap: wrap;
@@ -44,6 +68,12 @@
         .post-title {
           font-weight: bold;
           margin-bottom: 10px;
+          color: #007bff;
+          text-decoration: none;
+        }
+
+        .post-title:hover {
+          text-decoration: underline;
         }
 
         .post-text {
@@ -61,16 +91,26 @@
           .post {
             width: 100%;
           }
+          .header-buttons {
+            flex-direction: column;
+            gap: 10px;
+          }
         }
     </style>
 </head>
 <body>
 
-<h1>The Blog</h1>
-<!-- Форма поиска -->
-<form method="GET" action="/search">
-    <label for="articleId">Поиск статьи по ID:</label>
-    <input type="text" id="articleId" name="id" placeholder="Введите ID статьи" required />
+<div class="header-buttons">
+    <h1>The Blog</h1>
+    <a href="http://localhost:8080/blog-1.0-SNAPSHOT/post" class="add-post-btn">
+        Добавить пост
+    </a>
+</div>
+
+<!-- Форма поиска по имени -->
+<form method="GET" action="/post/search" class="search-form" id="searchForm">
+    <label for="postName">Поиск поста по имени:</label>
+    <input type="text" id="postName" name="name" placeholder="Введите имя поста" required />
     <button type="submit">Найти</button>
 </form>
 
@@ -82,14 +122,11 @@
 <script>
     const getPosts = async () => {
       try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 5000);
-
         const response = await fetch('http://localhost:8080/blog-1.0-SNAPSHOT/post/posts', {
-          signal: controller.signal
+          headers: {
+            'Accept': 'application/json'
+          }
         });
-
-        clearTimeout(timeoutId);
 
         if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
         return await response.json();
@@ -99,33 +136,73 @@
       }
     };
 
-    // Функция для отображения постов
+    // Функция для поиска поста по имени
+    const searchPostByName = async (name) => {
+      try {
+        const response = await fetch(`http://localhost:8080/blog-1.0-SNAPSHOT/post/search?name=${encodeURIComponent(name)}`, {
+          headers: {
+            'Accept': 'application/json'
+          }
+        });
+
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        return await response.json();
+      } catch (error) {
+        console.error('Ошибка при поиске поста:', error);
+        return [];
+      }
+    };
+
     function displayPosts(posts) {
       const container = document.getElementById('postsContainer');
       container.innerHTML = '';
 
-      const postsToShow = posts.slice(0, 3);
+      if (posts.length === 0) {
+        container.innerHTML = '<div class="no-posts">Посты не найдены</div>';
+        return;
+      }
 
-      postsToShow.forEach(post => {
+      posts.slice(0, 3).forEach(post => {
         const postDiv = document.createElement('div');
         postDiv.className = 'post';
 
-        const link = document.createElement('a');
-        link.href = `/post/${post.id}`;
-        link.textContent = post.title;
-        link.className = 'post-link';
+        // Заголовок поста
+        const titleLink = document.createElement('a');
+        titleLink.href = `/blog-1.0-SNAPSHOT/post/${post.id}`;
+        titleLink.className = 'post-title';
+        titleLink.textContent = post.name || 'Без названия';
 
+        // Текст поста
         const contentDiv = document.createElement('div');
-        contentDiv.className = 'post-content';
-        contentDiv.textContent = post.content;
+        contentDiv.className = 'post-text';
+        contentDiv.textContent = post.text || '';
 
-        postDiv.appendChild(link);
+        // Изображение (если есть)
+        if (post.image) {
+          const img = document.createElement('img');
+          img.src = `data:image/jpeg;base64,${post.image}`;
+          img.alt = post.name || 'Изображение поста';
+          postDiv.appendChild(img);
+        }
+
+        postDiv.appendChild(titleLink);
         postDiv.appendChild(contentDiv);
         container.appendChild(postDiv);
       });
     }
 
-    // Загрузка и отображение постов при загрузке страницы
+    // Обработчик формы поиска
+    document.getElementById('searchForm').addEventListener('submit', async (event) => {
+      event.preventDefault();
+
+      const postName = document.getElementById('postName').value.trim();
+      if (postName) {
+        const posts = await searchPostByName(postName);
+        displayPosts(posts);
+      }
+    });
+
+    // Загрузка всех постов при открытии страницы
     (async () => {
       const posts = await getPosts();
       displayPosts(posts);
