@@ -36,28 +36,25 @@ public class JdbcNativePostRepository implements PostRepository {
     }
 
     @Override
-    public Optional<Post> findByName(String name) {
+    public List<Post> findByName(String name) {
         String sql = "SELECT id, name, text, image, tags, likes_count FROM posts WHERE name = ?";
 
-        try {
-            Post post = jdbcTemplate.queryForObject(
-                    sql,
-                    new Object[]{name},
-                    (rs, rowNum) -> {
-                        Post p = new Post();
-                        p.setId(rs.getLong("id"));
-                        p.setName(rs.getString("name"));
-                        p.setText(rs.getString("text"));
-                        p.setImage(rs.getBytes("image"));
-                        p.setTags(rs.getString("tags"));
-                        p.setLikeCount(rs.getInt("likes_count"));
-                        return p;
-                    }
-            );
-            return Optional.ofNullable(post);
-        } catch (EmptyResultDataAccessException e) {
-            return Optional.empty();
-        }
+        List<Post> posts = jdbcTemplate.query(
+                sql,
+                new Object[]{name},
+                (rs, rowNum) -> {
+                    Post p = new Post();
+                    p.setId(rs.getLong("id"));
+                    p.setName(rs.getString("name"));
+                    p.setText(rs.getString("text"));
+                    p.setImage(rs.getBytes("image"));
+                    p.setTags(rs.getString("tags"));
+                    p.setLikeCount(rs.getInt("likes_count"));
+                    return p;
+                }
+        );
+        return posts;
+
     }
 
     @Override

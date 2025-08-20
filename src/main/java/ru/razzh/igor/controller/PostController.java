@@ -60,8 +60,8 @@ public class PostController {
     }
 
     @GetMapping(value = "/search", produces = MediaType.APPLICATION_JSON_VALUE)
-    public @ResponseBody ResponseEntity<Post> searchPostsByName(@RequestParam String name) {
-        return ResponseEntity.ok(postService.findByName(name).orElseThrow());
+    public @ResponseBody ResponseEntity<List<Post>> searchPostsByName(@RequestParam String name) {
+        return ResponseEntity.ok(postService.findByName(name));
     }
 
     // Просмотр конкретного поста

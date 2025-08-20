@@ -38,6 +38,29 @@
 
         .search-form {
             margin-bottom: 20px;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .search-form input {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            flex: 1;
+        }
+
+        .search-form button {
+            padding: 8px 16px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .search-form button:hover {
+            background-color: #0056b3;
         }
 
         .posts-container {
@@ -81,6 +104,19 @@
           color: #555;
         }
 
+        .no-posts {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+            font-style: italic;
+        }
+
+        .search-info {
+            margin-bottom: 15px;
+            color: #666;
+            font-style: italic;
+        }
+
         @media(max-width: 1024px) {
           .post {
             width: calc(50% - 20px);
@@ -95,6 +131,9 @@
             flex-direction: column;
             gap: 10px;
           }
+          .search-form {
+            flex-direction: column;
+          }
         }
     </style>
 </head>
@@ -108,11 +147,13 @@
 </div>
 
 <!-- Форма поиска по имени -->
-<form method="GET" action="/post/search" class="search-form" id="searchForm">
-    <label for="postName">Поиск поста по имени:</label>
-    <input type="text" id="postName" name="name" placeholder="Введите имя поста" required />
-    <button type="submit">Найти</button>
-</form>
+<div class="search-form">
+    <input type="text" id="postName" placeholder="Введите точное имя поста" />
+    <button type="button" id="searchBtn">Найти</button>
+    <button type="button" id="showAllBtn" style="display:none;">Показать посты</button>
+</div>
+
+<div id="searchInfo" class="search-info" style="display:none;"></div>
 
 <!-- Контейнер для постов -->
 <div class="posts-container" id="postsContainer">
@@ -120,6 +161,9 @@
 </div>
 
 <script>
+    let allPosts = []; // Сохраняем все посты для возможности вернуться
+    let isSearchMode = false; // Флаг режима поиска
+
     const getPosts = async () => {
       try {
         const response = await fetch('http://localhost:8080/blog-1.0-SNAPSHOT/post/posts', {
@@ -136,7 +180,7 @@
       }
     };
 
-    // Функция для поиска поста по имени
+    // Функция для поиска поста по точному имени
     const searchPostByName = async (name) => {
       try {
         const response = await fetch(`http://localhost:8080/blog-1.0-SNAPSHOT/post/search?name=${encodeURIComponent(name)}`, {
@@ -146,14 +190,15 @@
         });
 
         if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-        return await response.json();
+        const posts = await response.json();
+        return posts.length > 0 ? posts[0] : null; // Возвращаем первый найденный пост
       } catch (error) {
         console.error('Ошибка при поиске поста:', error);
-        return [];
+        return null;
       }
     };
 
-    function displayPosts(posts) {
+    function displayPosts(posts, searchQuery = '') {
       const container = document.getElementById('postsContainer');
       container.innerHTML = '';
 
@@ -162,7 +207,16 @@
         return;
       }
 
-      posts.slice(0, 3).forEach(post => {
+      // Отображаем информацию о поиске
+      const searchInfo = document.getElementById('searchInfo');
+      if (searchQuery) {
+        searchInfo.style.display = 'block';
+        searchInfo.textContent = `Результат поиска по запросу: "${searchQuery}"`;
+      } else {
+        searchInfo.style.display = 'none';
+      }
+
+      posts.forEach(post => {
         const postDiv = document.createElement('div');
         postDiv.className = 'post';
 
@@ -191,21 +245,36 @@
       });
     }
 
-    // Обработчик формы поиска
-    document.getElementById('searchForm').addEventListener('submit', async (event) => {
-      event.preventDefault();
-
+    // Обработчик кнопки поиска
+    document.getElementById('searchBtn').addEventListener('click', async () => {
       const postName = document.getElementById('postName').value.trim();
       if (postName) {
-        const posts = await searchPostByName(postName);
-        displayPosts(posts);
+        const foundPost = await searchPostByName(postName);
+
+        if (foundPost) {
+          // Отображаем только найденный пост
+          displayPosts([foundPost], postName);
+          isSearchMode = true;
+          document.getElementById('showAllBtn').style.display = 'block';
+        } else {
+          displayPosts([], postName);
+          document.getElementById('showAllBtn').style.display = 'block';
+        }
       }
+    });
+
+    // Обработчик кнопки "Показать посты"
+    document.getElementById('showAllBtn').addEventListener('click', () => {
+      document.getElementById('postName').value = ''; // Очищаем поле поиска
+      displayPosts(allPosts.slice(0, 3)); // Показываем первые 3 поста
+      isSearchMode = false;
+      document.getElementById('showAllBtn').style.display = 'none';
     });
 
     // Загрузка всех постов при открытии страницы
     (async () => {
-      const posts = await getPosts();
-      displayPosts(posts);
+      allPosts = await getPosts();
+      displayPosts(allPosts.slice(0, 3)); // Показываем первые 3 поста
     })();
 </script>
 </body>

@@ -35,7 +35,7 @@ public class PostService {
         return postRepository.findFreeLastPosts();
     }
 
-    public Optional<Post> findByName(String name) {
+    public List<Post> findByName(String name) {
         return postRepository.findByName(name);
     }
 

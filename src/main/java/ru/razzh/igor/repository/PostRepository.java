@@ -9,7 +9,7 @@ public interface PostRepository {
     List<Post> findFreeLastPosts();
     void save(Post post);
 
-    Optional<Post> findByName(String name);
+    List<Post> findByName(String name);
 
     Optional<Post> findById(Long id);
 
