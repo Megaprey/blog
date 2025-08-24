@@ -2,9 +2,13 @@ package ru.razzh.igor.service;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import ru.razzh.igor.dto.CommentRequest;
 import ru.razzh.igor.dto.PostDto;
+import ru.razzh.igor.entity.Comment;
 import ru.razzh.igor.entity.Post;
 import ru.razzh.igor.map.Mapper;
+import ru.razzh.igor.repository.CommentRepository;
 import ru.razzh.igor.repository.PostRepository;
 
 import java.io.IOException;
@@ -15,10 +19,12 @@ import java.util.Optional;
 @Service
 public class PostService {
     private final PostRepository postRepository;
+    private final CommentRepository commentRepository;
 
     @Autowired
-    public PostService(PostRepository postRepository) {
+    public PostService(PostRepository postRepository, CommentRepository commentRepository) {
         this.postRepository = postRepository;
+        this.commentRepository = commentRepository;
     }
 
     public void save(PostDto postDto) {
@@ -45,5 +51,29 @@ public class PostService {
 
     public void updatePost(PostDto postDto) throws SQLException, IOException {
         postRepository.updatePost(Mapper.postDtoMapToPost(postDto));
+    }
+    // Добавление лайка
+    @Transactional
+    public void addLike(Long postId) {
+        Post post = postRepository.findById(postId)
+                .orElseThrow(() -> new RuntimeException("Post not found"));
+        post.setLikeCount(post.getLikeCount() + 1);
+        postRepository.save(post);
+    }
+
+    // Добавление комментария
+    @Transactional
+    public Comment addComment(Long postId, CommentRequest commentRequest) {
+        Post post = postRepository.findById(postId)
+                .orElseThrow(() -> new RuntimeException("Post not found"));
+
+        Comment comment = new Comment(commentRequest.text(), postId);
+
+        return commentRepository.save(comment);
+    }
+
+    // Получение комментариев
+    public List<Comment> getComments(Long postId) {
+        return commentRepository.findByPost(postId);
     }
 }

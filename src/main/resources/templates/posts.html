@@ -41,6 +41,15 @@
         .comment-text {
           margin-bottom: 8px;
         }
+        .comment-author {
+          font-weight: bold;
+          color: #333;
+        }
+        .comment-date {
+          color: #666;
+          font-size: 0.8em;
+          margin-left: 10px;
+        }
         .likes {
           margin-top: 10px;
         }
@@ -72,55 +81,75 @@
             margin-top: 20px;
             display: block;
         }
+        .add-comment {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 5px;
+        }
+        .comment-form {
+            margin-top: 10px;
+        }
+        .comment-form textarea {
+            width: 100%;
+            height: 80px;
+            margin-bottom: 10px;
+        }
+        .comment-form button {
+            background-color: #28a745;
+        }
+        .comment-form button:hover {
+            background-color: #218838;
+        }
     </style>
 </head>
 <body>
 
 <div class="form-container" id="userForm">
-    <form th:action="${post != null} ? @{'/post/update/' + ${post.id}} : @{/post/add}" 
-          method="POST" 
+    <form th:action="${post != null} ? @{'/post/update/' + ${post.id}} : @{/post/add}"
+          method="POST"
           enctype="multipart/form-data">
-        
+
         <!-- Поля поста -->
-        <input type="text" id="postName" name="name" 
-               th:value="${post != null} ? ${post.name} : ''" 
-               placeholder="Название поста" 
-               class="postName-input" 
+        <input type="text" id="postName" name="name"
+               th:value="${post != null} ? ${post.name} : ''"
+               placeholder="Название поста"
+               class="postName-input"
                required
                th:readonly="${post == null} ? false : true">
-        
-        <input type="text" id="tagsInput" name="tags" 
-               th:value="${post != null} ? ${post.tags} : ''" 
+
+        <input type="text" id="tagsInput" name="tags"
+               th:value="${post != null} ? ${post.tags} : ''"
                placeholder="Введите теги через # (например, #кошки #собаки)"
                th:readonly="${post == null} ? false : true">
-        
-        <img id="postImage" th:if="${post != null && post.image != null}" 
-             th:src="'data:image/jpeg;base64,' + ${post.image}" 
+
+        <img id="postImage" th:if="${post != null && post.image != null}"
+             th:src="'data:image/jpeg;base64,' + ${post.image}"
              alt="Изображение поста">
-        
-        <textarea id="postContent" name="text" rows="4" 
-                  placeholder="Текст поста" 
+
+        <textarea id="postContent" name="text" rows="4"
+                  placeholder="Текст поста"
                   th:text="${post != null} ? ${post.text} : ''"
                   required
                   th:readonly="${post == null} ? false : true"></textarea>
-        
+
         <label th:if="${post == null}">Добавить картинку</label>
         <input type="file" id="image" name="image" accept="image/jpeg"
                th:disabled="${post != null}"
                onchange="showPicture(event)"/>
-        
+
         <div class="likes">
             <button type="button" id="likeBtn">👍</button>
             <span id="likeCount" th:text="${post != null} ? ${post.likeCount} : '0'">0</span>
-            <input type="hidden" id="likeCountInput" name="likeCount" 
+            <input type="hidden" id="likeCountInput" name="likeCount"
                    th:value="${post != null} ? ${post.likeCount} : '0'">
         </div>
-        
+
         <!-- Кнопки для нового поста -->
         <div class="buttons" th:if="${post == null}">
             <button type="submit">Добавить этот пост</button>
         </div>
-        
+
         <!-- Кнопки для существующего поста -->
         <div class="buttons" th:if="${post != null}">
             <button type="button" id="editBtn">Редактировать</button>
@@ -132,7 +161,40 @@
     </form>
 </div>
 
+<!-- Секция комментариев -->
+<div class="comments" th:if="${post != null}">
+    <h3>Комментарии</h3>
+
+    <!-- Список комментариев -->
+    <div id="commentsList">
+        <div th:each="comment : ${post.comments}" class="comment">
+            <div class="comment-author" th:text="${comment.author} + ':'"></div>
+            <div class="comment-text" th:text="${comment.text}"></div>
+            <div class="comment-date" th:text="${#temporals.format(comment.createdAt, 'dd.MM.yyyy HH:mm')}"></div>
+        </div>
+        <div th:if="${post.comments == null || post.comments.empty}" class="no-comments">
+            Комментариев пока нет. Будьте первым!
+        </div>
+    </div>
+
+    <!-- Форма добавления комментария -->
+    <div class="add-comment">
+        <button type="button" id="showCommentFormBtn">Добавить комментарий</button>
+
+        <div class="comment-form" id="commentForm" style="display: none;">
+            <input type="text" id="commentAuthor" placeholder="Ваше имя" required>
+            <textarea id="commentText" placeholder="Ваш комментарий..." required></textarea>
+            <button type="button" id="submitCommentBtn">Отправить комментарий</button>
+            <button type="button" id="cancelCommentBtn">Отмена</button>
+        </div>
+    </div>
+</div>
+
 <script>
+    // Сохраняем ID поста из Thymeleaf
+    const postId = [[${post?.id}]];
+    const hasPost = [[${post != null}]];
+
     // Функция для предпросмотра изображения
     function showPicture(event) {
         const file = event.target.files[0];
@@ -158,12 +220,12 @@
     document.getElementById('editBtn')?.addEventListener('click', function() {
         document.getElementById('editBtn').style.display = 'none';
         document.getElementById('editButtons').style.display = 'block';
-        
+
         // Разблокируем поля для редактирования
         document.getElementById('postName').readOnly = false;
         document.getElementById('tagsInput').readOnly = false;
         document.getElementById('postContent').readOnly = false;
-        
+
         // Активируем загрузку изображения
         document.getElementById('image').disabled = false;
     });
@@ -172,14 +234,12 @@
     document.getElementById('cancelEditBtn')?.addEventListener('click', function() {
         document.getElementById('editBtn').style.display = 'inline-block';
         document.getElementById('editButtons').style.display = 'none';
-        
+
         // Блокируем поля обратно
         document.getElementById('postName').readOnly = true;
         document.getElementById('tagsInput').readOnly = true;
         document.getElementById('postContent').readOnly = true;
         document.getElementById('image').disabled = true;
-        
-        // Можно добавить сброс значений к исходным
     });
 
     // Обработчик лайков
@@ -190,6 +250,172 @@
         currentLikes += 1;
         likeCountSpan.textContent = currentLikes;
         likeCountInput.value = currentLikes;
+
+        // Отправляем лайк на сервер
+        if (postId) {
+            fetch(`http://localhost:8080/blog-1.0-SNAPSHOT/post/${postId}/like`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            }).catch(error => console.error('Ошибка при отправке лайка:', error));
+        }
+    });
+
+    // Обработчики для комментариев
+    document.getElementById('showCommentFormBtn')?.addEventListener('click', function() {
+        document.getElementById('commentForm').style.display = 'block';
+        document.getElementById('showCommentFormBtn').style.display = 'none';
+    });
+
+    document.getElementById('cancelCommentBtn')?.addEventListener('click', function() {
+        document.getElementById('commentForm').style.display = 'none';
+        document.getElementById('showCommentFormBtn').style.display = 'block';
+        document.getElementById('commentAuthor').value = '';
+        document.getElementById('commentText').value = '';
+    });
+
+    document.getElementById('submitCommentBtn')?.addEventListener('click', async function() {
+        const author = document.getElementById('commentAuthor').value.trim();
+        const text = document.getElementById('commentText').value.trim();
+
+        if (!author || !text) {
+            alert('Пожалуйста, заполните все поля');
+            return;
+        }
+
+        try {
+            const response = await fetch(`http://localhost:8080/blog-1/blog-1.0-SNAPSHOT/post/${postId}/comment`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify({
+                    author: author,
+                    text: text
+                })
+            });
+
+            if (response.ok) {
+                // Обновляем список комментариев
+                const newComment = await response.json();
+                addCommentToDOM(newComment);
+
+                // Очищаем форму
+                document.getElementById('commentAuthor').value = '';
+                document.getElementById('commentText').value = '';
+                document.getElementById('commentForm').style.display = 'none';
+                document.getElementById('showCommentFormBtn').style.display = 'block';
+
+                alert('Комментарий успешно добавлен!');
+            } else {
+                alert('Ошибка при добавлении комментария');
+            }
+        } catch (error) {
+            console.error('Ошибка:', error);
+            alert('Произошла ошибка при отправке комментария');
+        }
+    });
+
+    // Функция для добавления комментария в DOM
+    function addCommentToDOM(comment) {
+        const commentsList = document.getElementById('commentsList');
+        const noComments = commentsList.querySelector('.no-comments');
+
+        if (noComments) {
+            noComments.remove();
+        }
+
+        const commentDiv = document.createElement('div');
+        commentDiv.className = 'comment';
+
+        const authorDiv = document.createElement('div');
+        authorDiv.className = 'comment-author';
+        authorDiv.textContent = comment.author + ':';
+
+        const textDiv = document.createElement('div');
+        textDiv.className = 'comment-text';
+        textDiv.textContent = comment.text;
+
+        const dateDiv = document.createElement('div');
+        dateDiv.className = 'comment-date';
+        dateDiv.textContent = new Date(comment.createdAt).toLocaleString('ru-RU');
+
+        commentDiv.appendChild(authorDiv);
+        commentDiv.appendChild(textDiv);
+        commentDiv.appendChild(dateDiv);
+
+        commentsList.appendChild(commentDiv);
+    }
+
+    // Загрузка комментариев при загрузке страницы
+    async function loadComments() {
+        if (!postId) return;
+
+        try {
+            const response = await fetch(`http://localhost:8080/blog-1.0-SNAPSHOT/post/${postId}/comments`);
+            if (response.ok) {
+                const comments = await response.json();
+                const commentsList = document.getElementById('commentsList');
+                commentsList.innerHTML = '';
+
+                if (comments.length === 0) {
+                    commentsList.innerHTML = '<div class="no-comments">Комментариев пока нет. Будьте первым!</div>';
+                    return;
+                }
+
+                comments.forEach(comment => addCommentToDOM(comment));
+            }
+        } catch (error) {
+            console.error('Ошибка при загрузке комментариев:', error);
+        }
+    }
+
+    // Инициализация при загрузке страницы
+    document.addEventListener('DOMContentLoaded', function() {
+        // Проверяем, есть ли пост и кнопки
+        const likeBtn = document.getElementById('likeBtn');
+        const showCommentBtn = document.getElementById('showCommentFormBtn');
+
+        if (hasPost && likeBtn) {
+            console.log('Пост существует, кнопка лайка доступна');
+        }
+
+        if (hasPost && showCommentBtn) {
+            console.log('Пост существует, кнопка комментариев доступна');
+            // Загружаем комментарии
+            loadComments();
+        }
+
+        // Добавляем обработчики только если элементы существуют
+        if (likeBtn) {
+            likeBtn.addEventListener('click', function() {
+                const likeCountSpan = document.getElementById('likeCount');
+                const likeCountInput = document.getElementById('likeCountInput');
+                let currentLikes = parseInt(likeCountSpan.textContent);
+                currentLikes += 1;
+                likeCountSpan.textContent = currentLikes;
+                likeCountInput.value = currentLikes;
+
+                // Отправляем лайк на сервер
+                if (postId) {
+                    fetch(`http://localhost:8080/blog-1.0-SNAPSHOT/post/${postId}/like`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        }
+                    }).catch(error => console.error('Ошибка при отправке лайка:', error));
+                }
+            });
+        }
+
+        if (showCommentBtn) {
+            showCommentBtn.addEventListener('click', function() {
+                document.getElementById('commentForm').style.display = 'block';
+                document.getElementById('showCommentFormBtn').style.display = 'none';
+            });
+        }
     });
 </script>
 </body>

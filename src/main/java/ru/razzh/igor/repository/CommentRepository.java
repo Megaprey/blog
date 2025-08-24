@@ -6,5 +6,5 @@ import java.util.List;
 
 public interface CommentRepository {
     List<Comment> findByPost(Long postId);
-    void save(Comment comment);
+    Comment save(Comment comment);
 }

@@ -6,6 +6,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
+import ru.razzh.igor.dto.CommentRequest;
+import ru.razzh.igor.dto.CommentResponse;
 import ru.razzh.igor.dto.PostDto;
 import ru.razzh.igor.entity.Comment;
 import ru.razzh.igor.entity.Post;
@@ -16,8 +18,8 @@ import ru.razzh.igor.service.PostService;
 import java.io.IOException;
 
 import java.sql.SQLException;
-import java.util.Base64;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Controller
 @RequestMapping("/post")
@@ -78,5 +80,45 @@ public class PostController {
     public String updatePost(@ModelAttribute PostDto postDto) throws IOException, SQLException {
         postService.updatePost(postDto);
         return "redirect:/post/" + postDto.getId();
+    }
+
+    // Добавление лайка
+    @PostMapping("/{id}/like")
+    public ResponseEntity<?> addLike(@PathVariable Long id) {
+        try {
+            postService.addLike(id);
+            return ResponseEntity.ok().build();
+        } catch (RuntimeException e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    // Добавление комментария
+    @PostMapping("/{id}/comment")
+    public ResponseEntity<CommentResponse> addComment(
+            @PathVariable Long id,
+            @RequestBody CommentRequest commentRequest) {
+        try {
+            Comment comment = postService.addComment(id, commentRequest);
+            CommentResponse response = new CommentResponse(comment.getId(), comment.getText(), comment.getPostId());
+            return ResponseEntity.ok(response);
+        } catch (RuntimeException e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    // Получение комментариев
+    @GetMapping("/{id}/comments")
+    public ResponseEntity<List<CommentResponse>> getComments(@PathVariable Long id) {
+        try {
+            List<Comment> comments = postService.getComments(id);
+            List<CommentResponse> responses = comments.stream()
+                    .map(com -> new CommentResponse(com.getId(),
+                            com.getText(), com.getPostId()))
+                    .collect(Collectors.toList());
+            return ResponseEntity.ok(responses);
+        } catch (RuntimeException e) {
+            return ResponseEntity.notFound().build();
+        }
     }
 }
