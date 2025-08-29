@@ -1,14 +1,17 @@
 package ru.razzh.igor.dto;
 
-import org.springframework.web.multipart.MultipartFile;
+import lombok.AllArgsConstructor;
+import lombok.NoArgsConstructor;
 
+@NoArgsConstructor
+@AllArgsConstructor
 public class PostDto {
     private Long id;
 
     private String name;
     private String text;
     private String tags;
-    private MultipartFile image;
+
     private int likeCount;
 
     public void setId(Long id) {
@@ -53,17 +56,67 @@ public class PostDto {
         this.text = text;
     }
 
-    public MultipartFile getImage() {
-        return image;
+    private PostDto(Builder builder) {
+        this.id = builder.id;
+        this.name = builder.name;
+        this.text = builder.text;
+        this.tags = builder.tags;
+        this.likeCount = builder.likeCount;
+    }
+    // Builder class
+    public static class Builder {
+        private Long id;
+        private String name;
+        private String text;
+        private String tags;
+        private int likeCount;
+
+        public Builder() {}
+
+        public Builder id(Long id) {
+            this.id = id;
+            return this;
+        }
+
+        public Builder name(String name) {
+            this.name = name;
+            return this;
+        }
+
+        public Builder text(String text) {
+            this.text = text;
+            return this;
+        }
+
+        public Builder tags(String tags) {
+            this.tags = tags;
+            return this;
+        }
+
+        public Builder likeCount(int likeCount) {
+            this.likeCount = likeCount;
+            return this;
+        }
+
+        public PostDto build() {
+            return new PostDto(this);
+        }
     }
 
-    public void setImage(MultipartFile image) {
-        this.image = image;
+    // Static factory method for builder
+    public static Builder builder() {
+        return new Builder();
     }
 
-//    public PostDto(String name, String text, MultipartFile image) {
-//        this.name = name;
-//        this.text = text;
-//        this.image = image;
-//    }
+    // Optional: toString method
+    @Override
+    public String toString() {
+        return "PostDto{" +
+                "id=" + id +
+                ", name='" + name + '\'' +
+                ", text='" + text + '\'' +
+                ", tags='" + tags + '\'' +
+                ", likeCount=" + likeCount +
+                '}';
+    }
 }

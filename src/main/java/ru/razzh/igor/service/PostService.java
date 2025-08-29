@@ -5,6 +5,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.razzh.igor.dto.CommentRequest;
 import ru.razzh.igor.dto.PostDto;
+import ru.razzh.igor.dto.PostExtendedInDto;
 import ru.razzh.igor.entity.Comment;
 import ru.razzh.igor.entity.Post;
 import ru.razzh.igor.map.Mapper;
@@ -27,7 +28,7 @@ public class PostService {
         this.commentRepository = commentRepository;
     }
 
-    public void save(PostDto postDto) {
+    public void save(PostExtendedInDto postDto) {
         try {
             postRepository.save(Mapper.postDtoMapToPost(postDto));
         } catch (IOException e) {
@@ -49,7 +50,7 @@ public class PostService {
         return postRepository.findById(id);
     }
 
-    public void updatePost(PostDto postDto) throws SQLException, IOException {
+    public void updatePost(PostExtendedInDto postDto) throws SQLException, IOException {
         postRepository.updatePost(Mapper.postDtoMapToPost(postDto));
     }
     // Добавление лайка
@@ -58,7 +59,7 @@ public class PostService {
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new RuntimeException("Post not found"));
         post.setLikeCount(post.getLikeCount() + 1);
-        postRepository.save(post);
+        postRepository.updatePost(post);
     }
 
     // Добавление комментария
@@ -75,5 +76,11 @@ public class PostService {
     // Получение комментариев
     public List<Comment> getComments(Long postId) {
         return commentRepository.findByPost(postId);
+    }
+
+    public byte[] getImageById(Long id) {
+        return postRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Post not found"))
+                .getImage();
     }
 }

@@ -1,17 +1,17 @@
 package ru.razzh.igor.controller;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
-import ru.razzh.igor.dto.CommentRequest;
-import ru.razzh.igor.dto.CommentResponse;
-import ru.razzh.igor.dto.PostDto;
+import ru.razzh.igor.dto.*;
 import ru.razzh.igor.entity.Comment;
 import ru.razzh.igor.entity.Post;
 import ru.razzh.igor.exception.PostNotFoundException;
+import ru.razzh.igor.map.Mapper;
 import ru.razzh.igor.service.CommentService;
 import ru.razzh.igor.service.PostService;
 
@@ -50,7 +50,7 @@ public class PostController {
     @PostMapping(value = "/add", consumes = {
             MediaType.MULTIPART_FORM_DATA_VALUE
     })
-    public String addPost(@ModelAttribute PostDto postDto) throws IOException, SQLException {
+    public String addPost(@ModelAttribute PostExtendedInDto postDto) throws IOException, SQLException {
         postService.save(postDto);
 
         return "redirect:/blog";
@@ -61,6 +61,11 @@ public class PostController {
         return ResponseEntity.ok(postService.findFreeLastPosts());
     }
 
+    @GetMapping(value = "images/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
+    public  @ResponseBody ResponseEntity<byte[]> getImage(@PathVariable Long id) {
+        return ResponseEntity.ok(postService.getImageById(id));
+    }
+
     @GetMapping(value = "/search", produces = MediaType.APPLICATION_JSON_VALUE)
     public @ResponseBody ResponseEntity<List<Post>> searchPostsByName(@RequestParam String name) {
         return ResponseEntity.ok(postService.findByName(name));
@@ -68,16 +73,18 @@ public class PostController {
 
     // Просмотр конкретного поста
     @GetMapping("/{id}")
-    public String viewPost(@PathVariable Long id, Model model) {
+    public String viewPost(@PathVariable Long id, Model model) throws SQLException, IOException {
         Post post = postService.findById(id)
-                .orElseThrow(() -> new PostNotFoundException("Post not found"));
-        model.addAttribute("post", post);
+                .orElseThrow(() -> new PostNotFoundException("Post not found with id: " + id));
+        PostDto postDto = Mapper.postMapToPostDto(post);
+        model.addAttribute("post", postDto);
         return "posts";
     }
+
     @PostMapping(value = "/update/{id}", consumes = {
             MediaType.MULTIPART_FORM_DATA_VALUE
     })
-    public String updatePost(@ModelAttribute PostDto postDto) throws IOException, SQLException {
+    public String updatePost(@ModelAttribute PostExtendedInDto postDto) throws IOException, SQLException {
         postService.updatePost(postDto);
         return "redirect:/post/" + postDto.getId();
     }

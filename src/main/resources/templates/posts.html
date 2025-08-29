@@ -123,10 +123,6 @@
                placeholder="Введите теги через # (например, #кошки #собаки)"
                th:readonly="${post == null} ? false : true">
 
-        <img id="postImage" th:if="${post != null && post.image != null}"
-             th:src="'data:image/jpeg;base64,' + ${post.image}"
-             alt="Изображение поста">
-
         <textarea id="postContent" name="text" rows="4"
                   placeholder="Текст поста"
                   th:text="${post != null} ? ${post.text} : ''"
@@ -134,11 +130,14 @@
                   th:readonly="${post == null} ? false : true"></textarea>
 
         <label th:if="${post == null}">Добавить картинку</label>
+
+        <p th:if="${post != null}">
+            <img height="300" th:src="${'http://localhost:8080/blog-1.0-SNAPSHOT/post/images/'+post.id}">
+        </p>
         <input type="file" id="image" name="image" accept="image/jpeg"
-               th:disabled="${post != null}"
                onchange="showPicture(event)"/>
 
-        <div class="likes">
+        <div class="likes" th:if="${post != null}">
             <button type="button" id="likeBtn">👍</button>
             <span id="likeCount" th:text="${post != null} ? ${post.likeCount} : '0'">0</span>
             <input type="hidden" id="likeCountInput" name="likeCount"
@@ -161,42 +160,22 @@
     </form>
 </div>
 
-<!-- Секция комментариев -->
-<div class="comments" th:if="${post != null}">
-    <h3>Комментарии</h3>
 
-    <!-- Список комментариев -->
-    <div id="commentsList">
-        <div th:each="comment : ${post.comments}" class="comment">
-            <div class="comment-author" th:text="${comment.author} + ':'"></div>
-            <div class="comment-text" th:text="${comment.text}"></div>
-            <div class="comment-date" th:text="${#temporals.format(comment.createdAt, 'dd.MM.yyyy HH:mm')}"></div>
-        </div>
-        <div th:if="${post.comments == null || post.comments.empty}" class="no-comments">
-            Комментариев пока нет. Будьте первым!
-        </div>
-    </div>
 
-    <!-- Форма добавления комментария -->
-    <div class="add-comment">
-        <button type="button" id="showCommentFormBtn">Добавить комментарий</button>
-
-        <div class="comment-form" id="commentForm" style="display: none;">
-            <input type="text" id="commentAuthor" placeholder="Ваше имя" required>
-            <textarea id="commentText" placeholder="Ваш комментарий..." required></textarea>
-            <button type="button" id="submitCommentBtn">Отправить комментарий</button>
-            <button type="button" id="cancelCommentBtn">Отмена</button>
-        </div>
-    </div>
+<div id="post-data"
+     th:data-id="${post?.id}"
+     th:data-name="${post?.name}"
+     th:data-text="${post?.text}"
+     th:data-tags="${post?.tags}"
+     th:data-like-count="${post?.likeCount}"
+     style="display: none;">
 </div>
-
 <script>
-    // Сохраняем ID поста из Thymeleaf
-    const postId = [[${post?.id}]];
-    const hasPost = [[${post != null}]];
 
+    const likeBtn = document.getElementById('likeBtn');
     // Функция для предпросмотра изображения
     function showPicture(event) {
+        debugger;
         const file = event.target.files[0];
         if (file) {
             const reader = new FileReader();
@@ -247,176 +226,24 @@
         const likeCountSpan = document.getElementById('likeCount');
         const likeCountInput = document.getElementById('likeCountInput');
         let currentLikes = parseInt(likeCountSpan.textContent);
+
+        const postDataElement = document.getElementById('post-data');
+        let postId = -1;
+        if (postDataElement) {
+            postId = postDataElement.getAttribute('data-id');
+        }
+        fetch(`http://localhost:8080/blog-1.0-SNAPSHOT/post/${postId}/like`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        }).catch(error => console.error('Ошибка при отправке лайка:', error));
+
         currentLikes += 1;
         likeCountSpan.textContent = currentLikes;
         likeCountInput.value = currentLikes;
-
-        // Отправляем лайк на сервер
-        if (postId) {
-            fetch(`http://localhost:8080/blog-1.0-SNAPSHOT/post/${postId}/like`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                }
-            }).catch(error => console.error('Ошибка при отправке лайка:', error));
-        }
     });
 
-    // Обработчики для комментариев
-    document.getElementById('showCommentFormBtn')?.addEventListener('click', function() {
-        document.getElementById('commentForm').style.display = 'block';
-        document.getElementById('showCommentFormBtn').style.display = 'none';
-    });
-
-    document.getElementById('cancelCommentBtn')?.addEventListener('click', function() {
-        document.getElementById('commentForm').style.display = 'none';
-        document.getElementById('showCommentFormBtn').style.display = 'block';
-        document.getElementById('commentAuthor').value = '';
-        document.getElementById('commentText').value = '';
-    });
-
-    document.getElementById('submitCommentBtn')?.addEventListener('click', async function() {
-        const author = document.getElementById('commentAuthor').value.trim();
-        const text = document.getElementById('commentText').value.trim();
-
-        if (!author || !text) {
-            alert('Пожалуйста, заполните все поля');
-            return;
-        }
-
-        try {
-            const response = await fetch(`http://localhost:8080/blog-1/blog-1.0-SNAPSHOT/post/${postId}/comment`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json'
-                },
-                body: JSON.stringify({
-                    author: author,
-                    text: text
-                })
-            });
-
-            if (response.ok) {
-                // Обновляем список комментариев
-                const newComment = await response.json();
-                addCommentToDOM(newComment);
-
-                // Очищаем форму
-                document.getElementById('commentAuthor').value = '';
-                document.getElementById('commentText').value = '';
-                document.getElementById('commentForm').style.display = 'none';
-                document.getElementById('showCommentFormBtn').style.display = 'block';
-
-                alert('Комментарий успешно добавлен!');
-            } else {
-                alert('Ошибка при добавлении комментария');
-            }
-        } catch (error) {
-            console.error('Ошибка:', error);
-            alert('Произошла ошибка при отправке комментария');
-        }
-    });
-
-    // Функция для добавления комментария в DOM
-    function addCommentToDOM(comment) {
-        const commentsList = document.getElementById('commentsList');
-        const noComments = commentsList.querySelector('.no-comments');
-
-        if (noComments) {
-            noComments.remove();
-        }
-
-        const commentDiv = document.createElement('div');
-        commentDiv.className = 'comment';
-
-        const authorDiv = document.createElement('div');
-        authorDiv.className = 'comment-author';
-        authorDiv.textContent = comment.author + ':';
-
-        const textDiv = document.createElement('div');
-        textDiv.className = 'comment-text';
-        textDiv.textContent = comment.text;
-
-        const dateDiv = document.createElement('div');
-        dateDiv.className = 'comment-date';
-        dateDiv.textContent = new Date(comment.createdAt).toLocaleString('ru-RU');
-
-        commentDiv.appendChild(authorDiv);
-        commentDiv.appendChild(textDiv);
-        commentDiv.appendChild(dateDiv);
-
-        commentsList.appendChild(commentDiv);
-    }
-
-    // Загрузка комментариев при загрузке страницы
-    async function loadComments() {
-        if (!postId) return;
-
-        try {
-            const response = await fetch(`http://localhost:8080/blog-1.0-SNAPSHOT/post/${postId}/comments`);
-            if (response.ok) {
-                const comments = await response.json();
-                const commentsList = document.getElementById('commentsList');
-                commentsList.innerHTML = '';
-
-                if (comments.length === 0) {
-                    commentsList.innerHTML = '<div class="no-comments">Комментариев пока нет. Будьте первым!</div>';
-                    return;
-                }
-
-                comments.forEach(comment => addCommentToDOM(comment));
-            }
-        } catch (error) {
-            console.error('Ошибка при загрузке комментариев:', error);
-        }
-    }
-
-    // Инициализация при загрузке страницы
-    document.addEventListener('DOMContentLoaded', function() {
-        // Проверяем, есть ли пост и кнопки
-        const likeBtn = document.getElementById('likeBtn');
-        const showCommentBtn = document.getElementById('showCommentFormBtn');
-
-        if (hasPost && likeBtn) {
-            console.log('Пост существует, кнопка лайка доступна');
-        }
-
-        if (hasPost && showCommentBtn) {
-            console.log('Пост существует, кнопка комментариев доступна');
-            // Загружаем комментарии
-            loadComments();
-        }
-
-        // Добавляем обработчики только если элементы существуют
-        if (likeBtn) {
-            likeBtn.addEventListener('click', function() {
-                const likeCountSpan = document.getElementById('likeCount');
-                const likeCountInput = document.getElementById('likeCountInput');
-                let currentLikes = parseInt(likeCountSpan.textContent);
-                currentLikes += 1;
-                likeCountSpan.textContent = currentLikes;
-                likeCountInput.value = currentLikes;
-
-                // Отправляем лайк на сервер
-                if (postId) {
-                    fetch(`http://localhost:8080/blog-1.0-SNAPSHOT/post/${postId}/like`, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        }
-                    }).catch(error => console.error('Ошибка при отправке лайка:', error));
-                }
-            });
-        }
-
-        if (showCommentBtn) {
-            showCommentBtn.addEventListener('click', function() {
-                document.getElementById('commentForm').style.display = 'block';
-                document.getElementById('showCommentFormBtn').style.display = 'none';
-            });
-        }
-    });
 </script>
 </body>
 </html>
