@@ -7,6 +7,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import ru.razzh.igor.dto.*;
 import ru.razzh.igor.entity.Comment;
 import ru.razzh.igor.entity.Post;
@@ -18,6 +19,7 @@ import ru.razzh.igor.service.PostService;
 import java.io.IOException;
 
 import java.sql.SQLException;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -101,26 +103,33 @@ public class PostController {
     }
 
     // Добавление комментария
-    @PostMapping("/{id}/comment")
-    public ResponseEntity<CommentResponse> addComment(
-            @PathVariable Long id,
-            @RequestBody CommentRequest commentRequest) {
-        try {
-            Comment comment = postService.addComment(id, commentRequest);
-            CommentResponse response = new CommentResponse(comment.getId(), comment.getText(), comment.getPostId());
-            return ResponseEntity.ok(response);
-        } catch (RuntimeException e) {
-            return ResponseEntity.notFound().build();
-        }
+    @PostMapping("/{postId}/comment")
+    public String addComment(@PathVariable Long postId,
+                             @RequestParam String author,
+                             @RequestParam String text,
+                             RedirectAttributes redirectAttributes) {
+
+        Comment comment = new Comment();
+        comment.setText(text);
+        comment.setAuthor(author);
+        comment.setPostId(postId);
+        comment.setCreatedAt(LocalDateTime.now());
+
+        commentService.save(comment);
+
+        redirectAttributes.addFlashAttribute("comments", commentService.getComments(postId));
+        redirectAttributes.addFlashAttribute("successMessage", "Комментарий добавлен!");
+
+        return "redirect:/post/" + postId;
     }
 
     // Получение комментариев
     @GetMapping("/{id}/comments")
     public ResponseEntity<List<CommentResponse>> getComments(@PathVariable Long id) {
         try {
-            List<Comment> comments = postService.getComments(id);
+            List<Comment> comments = commentService.getComments(id);
             List<CommentResponse> responses = comments.stream()
-                    .map(com -> new CommentResponse(com.getId(),
+                    .map(com -> new CommentResponse(com.getId(), com.getAuthor(),
                             com.getText(), com.getPostId()))
                     .collect(Collectors.toList());
             return ResponseEntity.ok(responses);

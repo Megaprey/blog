@@ -22,9 +22,9 @@ public class JdbcNativeCommentRepository implements CommentRepository {
 
     @Override
     public List<Comment> findByPost(Long postId) {
-        return jdbcTemplate.query("select id, text where post_id = ?", new Object[]{postId},
-                (rs, rowNum) -> new Comment(rs.getLong("id"),
-                    rs.getString("text"), postId));
+        return jdbcTemplate.query("select author, text from comment where post_id = ?", new Object[]{postId},
+                (rs, rowNum) ->
+                        new Comment(rs.getString("text"), rs.getString("author"), postId));
     }
 
     public Comment save(Comment comment) {
@@ -42,25 +42,27 @@ public class JdbcNativeCommentRepository implements CommentRepository {
 
         jdbcTemplate.update(connection -> {
             PreparedStatement ps = connection.prepareStatement(
-                    "INSERT INTO comment (text, post_id) VALUES (?, ?)",
+                    "INSERT INTO comment (author, text, post_id) VALUES (?, ?, ?)",
                     Statement.RETURN_GENERATED_KEYS
             );
-            ps.setString(1, comment.getText());
-            ps.setLong(2, comment.getPostId());
+            ps.setString(1, comment.getAuthor());
+            ps.setString(2, comment.getText());
+            ps.setLong(3, comment.getPostId());
             return ps;
         }, keyHolder);
 
         // Устанавливаем сгенерированный ID
-        comment.setId(keyHolder.getKey().longValue());
+        comment.setId((Long) keyHolder.getKeys().get("ID"));
 
         return comment;
     }
 
     private Comment update(Comment comment) {
         jdbcTemplate.update(
-                "UPDATE comment SET post_id = ?, text = ? WHERE id = ?",
+                "UPDATE comment SET post_id = ?, text = ?, author = ? WHERE id = ?",
                 comment.getPostId(),
                 comment.getText(),
+                comment.getAuthor(),
                 comment.getId()
         );
 

@@ -65,17 +65,12 @@ public class PostService {
     // Добавление комментария
     @Transactional
     public Comment addComment(Long postId, CommentRequest commentRequest) {
-        Post post = postRepository.findById(postId)
+        postRepository.findById(postId)
                 .orElseThrow(() -> new RuntimeException("Post not found"));
 
-        Comment comment = new Comment(commentRequest.text(), postId);
+        Comment comment = new Comment(commentRequest.author(), commentRequest.text(), postId);
 
         return commentRepository.save(comment);
-    }
-
-    // Получение комментариев
-    public List<Comment> getComments(Long postId) {
-        return commentRepository.findByPost(postId);
     }
 
     public byte[] getImageById(Long id) {
