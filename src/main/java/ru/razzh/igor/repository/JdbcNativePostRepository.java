@@ -94,6 +94,4 @@ public class JdbcNativePostRepository implements PostRepository {
                 post.getImage(),
                 post.getId());
     }
-
-
 }

@@ -1,0 +1,17 @@
+# ”становите поведение по умолчанию дл€ всех файлов
+* text=auto
+
+# явно укажите какие файлы должны быть с LF
+*.java text eol=lf
+*.gradle text eol=lf
+*.properties text eol=lf
+*.xml text eol=lf
+*.md text eol=lf
+*.txt text eol=lf
+
+# Ѕинарные файлы должны оставатьс€ как есть
+*.jpg binary
+*.png binary
+*.gif binary
+*.jar binary
+*.class binary
