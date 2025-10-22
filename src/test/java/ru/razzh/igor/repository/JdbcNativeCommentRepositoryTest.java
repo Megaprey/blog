@@ -7,6 +7,7 @@ import org.springframework.boot.test.autoconfigure.data.jdbc.DataJdbcTest;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.test.context.TestPropertySource;
 import ru.razzh.igor.entity.Comment;
 
 import java.util.List;
@@ -16,6 +17,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 @DataJdbcTest
 @Import(JdbcNativeCommentRepository.class)
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.ANY)
+@TestPropertySource(properties = {
+        "spring.sql.init.schema-locations=classpath:schema.sql",
+        "spring.sql.init.mode=always"
+})
 class JdbcNativeCommentRepositoryTest {
 
     @Autowired
@@ -26,27 +31,6 @@ class JdbcNativeCommentRepositoryTest {
 
     @BeforeEach
     void setUp() {
-        // Создаем таблицы перед каждым тестом
-        jdbcTemplate.execute("""
-            CREATE TABLE IF NOT EXISTS posts (
-                id BIGINT AUTO_INCREMENT PRIMARY KEY,
-                name VARCHAR(255) NOT NULL,
-                text TEXT,
-                image BYTEA,
-                tags VARCHAR(500),
-                likes_count INT DEFAULT 0
-            )
-        """);
-
-        jdbcTemplate.execute("""
-            CREATE TABLE IF NOT EXISTS comment (
-                id BIGINT AUTO_INCREMENT PRIMARY KEY,
-                author VARCHAR(255) NOT NULL,
-                text TEXT NOT NULL,
-                post_id BIGINT NOT NULL
-            )
-        """);
-
         // Очищаем таблицы перед каждым тестом
         jdbcTemplate.execute("DELETE FROM comment");
         jdbcTemplate.execute("DELETE FROM posts");

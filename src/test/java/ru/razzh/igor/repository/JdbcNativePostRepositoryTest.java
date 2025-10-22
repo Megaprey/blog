@@ -19,6 +19,10 @@ import static org.assertj.core.api.AssertionsForInterfaceTypes.assertThat;
 @DataJdbcTest
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.ANY)
 @Import(JdbcNativePostRepository.class)
+@TestPropertySource(properties = {
+        "spring.sql.init.schema-locations=classpath:schema.sql",
+        "spring.sql.init.mode=always"
+})
 class JdbcNativePostRepositoryTest {
 
     @Autowired
@@ -29,16 +33,6 @@ class JdbcNativePostRepositoryTest {
 
     @BeforeEach
     void setUp() {
-        jdbcTemplate.execute("""
-            CREATE TABLE IF NOT EXISTS posts (
-                id BIGINT AUTO_INCREMENT PRIMARY KEY,
-                name VARCHAR(255) NOT NULL,
-                text TEXT,
-                image BLOB,
-                tags VARCHAR(500),
-                likes_count INT DEFAULT 0
-            )
-        """);
         jdbcTemplate.execute("DELETE FROM posts");
     }
 

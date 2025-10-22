@@ -137,7 +137,7 @@
         <label th:if="${post == null}">Добавить картинку</label>
 
         <p th:if="${post != null}">
-            <img height="300" th:src="${'http://localhost:8080/post/images/'+post.id}">
+            <img height="300" th:src="${'/post/images/'+post.id}">
         </p>
         <input type="file" id="image" name="image" accept="image/jpeg"
                onchange="showPicture(event)"/>
@@ -258,7 +258,7 @@
         if (postDataElement) {
             postId = postDataElement.getAttribute('data-id');
         }
-        fetch(`http://localhost:8080/post/${postId}/like`, {
+        fetch(`/post/${postId}/like`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
