@@ -141,7 +141,7 @@
 
 <div class="header-buttons">
     <h1>The Blog</h1>
-    <a href="http://localhost:8080/blog-1.0-SNAPSHOT/post" class="add-post-btn">
+    <a href="/post" class="add-post-btn">
         Добавить пост
     </a>
 </div>
@@ -166,7 +166,7 @@
 
     const getPosts = async () => {
       try {
-        const response = await fetch('http://localhost:8080/blog-1.0-SNAPSHOT/post/posts', {
+        const response = await fetch('/post/posts', {
           headers: {
             'Accept': 'application/json'
           }
@@ -183,7 +183,7 @@
     // Функция для поиска поста по точному имени
     const searchPostByName = async (name) => {
       try {
-        const response = await fetch(`http://localhost:8080/blog-1.0-SNAPSHOT/post/search?name=${encodeURIComponent(name)}`, {
+        const response = await fetch(`/post/search?name=${encodeURIComponent(name)}`, {
           headers: {
             'Accept': 'application/json'
           }
@@ -222,7 +222,7 @@
 
         // Заголовок поста
         const titleLink = document.createElement('a');
-        titleLink.href = `http://localhost:8080/blog-1.0-SNAPSHOT/post/${post.id}`;
+        titleLink.href = `/post/${post.id}`;
         titleLink.className = 'post-title';
         titleLink.textContent = post.name || 'Без названия';
 

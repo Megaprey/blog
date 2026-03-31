@@ -11,7 +11,6 @@ import ru.razzh.igor.service.PostService;
 @RequestMapping("/blog")
 @RequiredArgsConstructor
 public class BlogController {
-    private final PostService postService;
 
     @GetMapping
     public String getPosts() {
